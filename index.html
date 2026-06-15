@@ -128,7 +128,22 @@ fetch('Apoio.geojson')
     console.error(error);
     alert("Erro ao carregar o ficheiro Apoio.geojson");
 });
+// Carregar Vias
+fetch('Vias.geojson')
+.then(response => response.json())
+.then(data => {
 
+    L.geoJSON(data, {
+        style: {
+            color: 'blue',
+            weight: 3
+        }
+    }).addTo(map);
+
+})
+.catch(error => {
+    console.error("Erro ao carregar Vias.geojson", error);
+});
 // GPS do utilizador
 map.locate({setView:false});
 
