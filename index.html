@@ -2,44 +2,55 @@
 <html lang="pt">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Apoios dos Postes</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+html,body,#map{
+height:100%;
+margin:0;
+padding:0;
 }
 
-#map {
-    width: 100%;
-    height: 100%;
+#pesquisa{
+position:absolute;
+top:10px;
+left:60px;
+z-index:1000;
+padding:8px;
+width:200px;
 }
 
-.info {
-    position: absolute;
-    top: 10px;
-    left: 60px;
-    z-index: 1000;
-    background: white;
-    padding: 8px;
-    border-radius: 5px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+#btnGPS{
+position:absolute;
+top:50px;
+left:60px;
+z-index:1000;
+padding:8px;
+cursor:pointer;
+}
+
+#btnSOS{
+position:absolute;
+top:90px;
+left:60px;
+z-index:1000;
+padding:8px;
+cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<div class="info">
-📍 Apoios dos Postes
-</div>
+<input id="pesquisa" placeholder="Pesquisar apoio (Name)">
+
+<button id="btnGPS">📍 Localização</button>
+
+<button id="btnSOS">🚨 Emergência</button>
 
 <div id="map"></div>
 
@@ -47,113 +58,158 @@ html, body {
 
 <script>
 
-// Criar mapa
-var map = L.map('map').setView([40.95, -7.26], 12);
+var map = L.map('map').setView([40.95,-7.26],12);
 
-// Camada OpenStreetMap
+var apoiosLayer;
+var listaApoios = [];
+
 var osm = L.tileLayer(
-    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }
+'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
 ).addTo(map);
 
-// Camada Satélite
 var satelite = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    {
-        maxZoom: 19,
-        attribution: 'Esri World Imagery'
-    }
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+{
+maxZoom:19
+}
 );
 
-// Controlo de camadas
 L.control.layers(
-    {
-        "Mapa": osm,
-        "Satélite": satelite
-    }
+{
+"Mapa":osm,
+"Satélite":satelite
+}
 ).addTo(map);
 
-// Carregar GeoJSON
 fetch('Apoio.geojson')
-.then(response => response.json())
-.then(data => {
+.then(r=>r.json())
+.then(data=>{
 
-    var apoios = L.geoJSON(data, {
+apoiosLayer = L.geoJSON(data,{
 
-        pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, {
-                radius: 6,
-                fillOpacity: 0.8
-            });
-        },
+pointToLayer:function(feature,latlng){
 
-        onEachFeature: function(feature, layer) {
-
-            let popup = "";
-
-            if (feature.properties) {
-                for (let campo in feature.properties) {
-                    popup += "<b>" + campo + "</b>: "
-                           + feature.properties[campo]
-                           + "<br>";
-                }
-            }
-
-            if (feature.geometry &&
-                feature.geometry.type === "Point") {
-
-                var lon = feature.geometry.coordinates[0];
-                var lat = feature.geometry.coordinates[1];
-
-                popup +=
-                '<br><br><a href="https://www.google.com/maps/search/?api=1&query=' +
-                lat + ',' + lon +
-                '" target="_blank">🧭 Navegar</a>';
-            }
-
-            layer.bindPopup(popup);
-        }
-
-    }).addTo(map);
-
-    if (apoios.getBounds().isValid()) {
-        map.fitBounds(apoios.getBounds());
-    }
-
-})
-.catch(error => {
-    console.error(error);
-    alert("Erro ao carregar o ficheiro Apoio.geojson");
+return L.circleMarker(latlng,{
+radius:7,
+weight:2
 });
-// Carregar Vias
+
+},
+
+onEachFeature:function(feature,layer){
+
+let popup='';
+
+if(feature.properties){
+
+for(let campo in feature.properties){
+
+popup += '<b>'+campo+'</b>: '
++ feature.properties[campo]
++ '<br>';
+
+}
+
+}
+
+let nome = feature.properties?.Name || '';
+
+listaApoios.push({
+nome:nome,
+layer:layer
+});
+
+if(feature.geometry.type==="Point"){
+
+let lon = feature.geometry.coordinates[0];
+let lat = feature.geometry.coordinates[1];
+
+popup +=
+'<br><a target="_blank" href="https://www.google.com/maps/search/?api=1&query='
++ lat + ',' + lon +
+'">🧭 Navegar</a>';
+
+}
+
+layer.bindPopup(popup);
+
+}
+
+}).addTo(map);
+
+map.fitBounds(apoiosLayer.getBounds());
+
+});
+
 fetch('Vias.geojson')
-.then(response => response.json())
-.then(data => {
+.then(r=>r.json())
+.then(data=>{
 
-    L.geoJSON(data, {
-        style: {
-            color: 'blue',
-            weight: 3
-        }
-    }).addTo(map);
+L.geoJSON(data,{
+style:{
+color:'#ff6600',
+weight:5
+}
+}).addTo(map);
 
 })
-.catch(error => {
-    console.error("Erro ao carregar Vias.geojson", error);
+.catch(err=>console.log(err));
+
+document.getElementById('pesquisa')
+.addEventListener('change',function(){
+
+let valor = this.value.toLowerCase();
+
+for(let i=0;i<listaApoios.length;i++){
+
+if(listaApoios[i].nome.toLowerCase()===valor){
+
+map.fitBounds(
+listaApoios[i].layer.getBounds()
+);
+
+listaApoios[i].layer.openPopup();
+
+break;
+}
+
+}
+
 });
-// GPS do utilizador
-map.locate({setView:false});
 
-map.on('locationfound', function(e){
+document.getElementById('btnGPS')
+.onclick=function(){
 
-    L.marker(e.latlng)
-    .addTo(map)
-    .bindPopup("📍 A sua localização");
+map.locate({
+setView:true,
+maxZoom:18
+});
+
+};
+
+map.on('locationfound',function(e){
+
+L.marker(e.latlng)
+.addTo(map)
+.bindPopup('📍 Está aqui');
 
 });
+
+document.getElementById('btnSOS')
+.onclick=function(){
+
+let msg =
+"🚨 Emergência\n\n" +
+"112\n\n" +
+"Bombeiros da Mêda\n279 883 122\n\n" +
+"Bombeiros de Trancoso\n271 829 120";
+
+alert(msg);
+
+};
 
 </script>
 
