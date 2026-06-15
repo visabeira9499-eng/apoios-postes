@@ -114,6 +114,23 @@ map.on('locationfound', function(e){
 });
 
 </script>
+map.locate({setView:true, maxZoom:16});
 
+map.on('locationfound', function(e) {
+    L.marker(e.latlng)
+      .addTo(map)
+      .bindPopup('Está aqui');
+});
+    </script>
+var lat = feature.geometry.coordinates[1];
+var lon = feature.geometry.coordinates[0];
+
+layer.bindPopup(
+    popup +
+    '<br><a href="https://www.google.com/maps?q=' +
+    lat + ',' + lon +
+    '" target="_blank">🧭 Navegar</a>'
+);
+        </script>
 </body>
 </html>
