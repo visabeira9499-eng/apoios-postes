@@ -1,33 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Apoios dos Postes</title>
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-html, body, #map {
-  height: 100%;
-  margin: 0;
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+.info {
+    position: absolute;
+    top: 10px;
+    left: 50px;
+    z-index: 1000;
+    background: white;
+    padding: 8px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
 }
 </style>
 </head>
 
 <body>
 
+<div class="info">
+📍 Apoios dos Postes
+</div>
+
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 
+// Criar mapa
 var map = L.map('map').setView([40.95, -7.26], 12);
 
+// Mapa base
 L.tileLayer(
-'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }
 ).addTo(map);
+
+// Carregar GeoJSON
+fetch('apoio.geojson')
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Não foi possível carregar apoio.geojson');
+    }
+    return response.json();
+})
+.then(data => {
+
+    var apoios = L.geoJSON(data, {
+
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 6,
+                fillOpacity: 0.8
+            });
+        },
+
+        onEachFeature: function(feature, layer) {
+
+            let popup = "";
+
+            if (feature.properties) {
+                for (let campo in feature.properties) {
+                    popup += "<b>" + campo + "</b>: "
+                           + feature.properties[campo]
+                           + "<br>";
+                }
+            }
+
+            layer.bindPopup(popup);
+        }
+
+    }).addTo(map);
+
+    if (apoios.getBounds().isValid()) {
+        map.fitBounds(apoios.getBounds());
+    }
+
+})
+.catch(error => {
+    console.error(error);
+    alert("Erro ao carregar o ficheiro apoio.geojson");
+});
+
+// Localização GPS
+map.locate({setView:false});
+
+map.on('locationfound', function(e){
+    L.marker(e.latlng)
+        .addTo(map)
+        .bindPopup("A sua localização");
+});
 
 </script>
 
